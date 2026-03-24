@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JokeBox">
+<meta name="theme-color" content="#111111">
+<title>JokeBox 🎤</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111111;
+    --surface: #1c1c1c;
+    --surface2: #252525;
+    --yellow: #FFE135;
+    --yellow-dim: #c9b020;
+    --red: #FF4545;
+    --green: #3DFF8F;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--bg);
+    border-bottom: 2px solid var(--yellow);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--yellow);
+    letter-spacing: 2px;
+  }
+
+  .logo span { color: var(--text); }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px 0;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .tab {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    padding: 8px 18px;
+    border-radius: 8px 8px 0 0;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--yellow);
+    color: #111;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
+
+  /* USER SELECTOR */
+  .user-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .user-bar label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  select {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    flex: 1;
+    min-width: 150px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 1px solid #2a2a2a;
+    transition: border-color 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:hover { border-color: #444; }
+
+  .joke-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .joke-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .joke-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #111;
+    flex-shrink: 0;
+  }
+
+  /* STAR RATING */
+  .stars {
+    display: flex;
+    gap: 4px;
+  }
+
+  .star {
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+    filter: grayscale(1);
+    opacity: 0.4;
+  }
+
+  .star.filled {
+    filter: none;
+    opacity: 1;
+  }
+
+  .star:hover { transform: scale(1.2); }
+
+  .avg-rating {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  /* FORMS */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus, input:focus, select:focus {
+    outline: none;
+    border-color: var(--yellow);
+  }
+
+  textarea { min-height: 100px; }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--yellow);
+    color: #111;
+    width: 100%;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .btn-primary:hover { background: var(--yellow-dim); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  /* USER CHIPS */
+  .user-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid #2a2a2a;
+    border-radius: 50px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    animation: slideIn 0.3s ease;
+  }
+
+  .user-chip .remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .user-chip .remove:hover { color: var(--red); }
+
+  /* SORT BAR */
+  .sort-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .sort-btn {
+    background: var(--surface2);
+    border: 1px solid #333;
+    color: var(--muted);
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .sort-btn.active {
+    background: var(--yellow);
+    color: #111;
+    border-color: var(--yellow);
+    font-weight: 700;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .empty .emoji { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: 0.95rem; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--yellow);
+    color: #111;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* LEADERBOARD */
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border: 1px solid #2a2a2a;
+    animation: slideIn 0.3s ease;
+  }
+
+  .rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--muted);
+    width: 32px;
+    text-align: center;
+  }
+
+  .rank.gold { color: #FFD700; }
+  .rank.silver { color: #C0C0C0; }
+  .rank.bronze { color: #CD7F32; }
+
+  .lb-info { flex: 1; }
+  .lb-name { font-weight: 700; font-size: 1rem; }
+  .lb-stats { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+  .lb-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: var(--yellow);
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    color: var(--yellow);
+  }
+
+  /* INSTALL BANNER */
+  .install-banner {
+    background: var(--surface2);
+    border: 1px solid var(--yellow);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: none;
+  }
+
+  .install-banner strong { color: var(--yellow); display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Joke<span>Box</span> 🎤</div>
+  <div style="font-size:0.8rem; color:var(--muted)" id="current-user-display"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showPage('jokes')">🎭 Jokes</button>
+  <button class="tab" onclick="showPage('add')">➕ Add</button>
+  <button class="tab" onclick="showPage('users')">👥 Users</button>
+  <button class="tab" onclick="showPage('board')">🏆 Board</button>
+</div>
+
+<!-- JOKES PAGE -->
+<div class="page active" id="page-jokes">
+  <div class="install-banner" id="install-banner">
+    <strong>📱 Add to iPhone Home Screen</strong>
+    Tap the Share button in Safari → "Add to Home Screen" for a permanent app icon!
+  </div>
+
+  <div class="sort-bar">
+    <span style="font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Sort:</span>
+    <button class="sort-btn active" onclick="setSort('newest')">Newest</button>
+    <button class="sort-btn" onclick="setSort('top')">Top Rated</button>
+    <button class="sort-btn" onclick="setSort('mine')">Mine</button>
+  </div>
+
+  <div id="jokes-list"></div>
+</div>
+
+<!-- ADD JOKE PAGE -->
+<div class="page" id="page-add">
+  <div class="section-title">Drop a Joke 🎤</div>
+
+  <div class="form-group">
+    <label>Who's telling this joke?</label>
+    <select id="joke-author"></select>
+  </div>
+
+  <div class="form-group">
+    <label>The Joke</label>
+    <textarea id="joke-text" placeholder="Why don't scientists trust atoms? Because they make up everything!"></textarea>
+  </div>
+
+  <button class="btn btn-primary" onclick="addJoke()">🎯 Post Joke</button>
+</div>
+
+<!-- USERS PAGE -->
+<div class="page" id="page-users">
+  <div class="section-title">Comedians 👥</div>
+
+  <div class="form-group">
+    <label>Add a new user</label>
+    <div style="display:flex;gap:10px">
+      <input type="text" id="new-username" placeholder="Enter name..." maxlength="20">
+      <button class="btn btn-primary" style="width:auto;padding:12px 20px" onclick="addUser()">Add</button>
+    </div>
+  </div>
+
+  <div class="user-list" id="user-list"></div>
+</div>
+
+<!-- LEADERBOARD PAGE -->
+<div class="page" id="page-board">
+  <div class="section-title">Hall of Fame 🏆</div>
+  <div id="leaderboard"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'];
+
+let state = {
+  users: [],
+  jokes: [],
+  currentUser: null,
+  sort: 'newest'
+};
+
+// ─── STORAGE ─────────────────────────────────────────────
+function save() {
+  localStorage.setItem('jokebox_state', JSON.stringify(state));
+}
+
+function load() {
+  const saved = localStorage.getItem('jokebox_state');
+  if (saved) {
+    try { state = JSON.parse(saved); } catch(e) {}
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+load();
+render();
+
+// iPhone install banner
+if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+  if (!window.navigator.standalone) {
+    document.getElementById('install-banner').style.display = 'block';
+  }
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+  render();
+}
+
+// ─── RENDER ───────────────────────────────────────────────
+function render() {
+  renderJokes();
+  renderUserSelect();
+  renderUserList();
+  renderLeaderboard();
+  renderCurrentUser();
+}
+
+function renderCurrentUser() {
+  const u = state.users.find(u => u.id === state.currentUser);
+  document.getElementById('current-user-display').textContent = u ? '👤 ' + u.name : '';
+}
+
+function renderJokes() {
+  const container = document.getElementById('jokes-list');
+  let jokes = [...state.jokes];
+
+  if (state.sort === 'top') {
+    jokes.sort((a, b) => avgRating(b) - avgRating(a));
+  } else if (state.sort === 'mine') {
+    jokes = jokes.filter(j => j.authorId === state.currentUser);
+  } else {
+    jokes.sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  if (jokes.length === 0) {
+    container.innerHTML = `<div class="empty"><div class="emoji">🦗</div><p>${state.sort === 'mine' ? 'You haven\'t posted any jokes yet!' : 'No jokes yet. Be the first!'}</p></div>`;
+    return;
+  }
+
+  container.innerHTML = jokes.map(joke => {
+    const author = state.users.find(u => u.id === joke.authorId);
+    const avg = avgRating(joke);
+    const myRating = joke.ratings[state.currentUser] || 0;
+    const ratingCount = Object.keys(joke.ratings).length;
+
+    return `
+      <div class="card">
+        <div class="joke-text">${escapeHtml(joke.text)}</div>
+        <div class="joke-meta">
+          <div class="joke-author">
+            ${author ? `<div class="avatar" style="background:${author.color}">${author.name[0].toUpperCase()}</div>${author.name}` : '<span>Unknown</span>'}
+            <span style="color:#444">•</span>
+            <span>${timeAgo(joke.createdAt)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="stars">
+              ${[1,2,3,4,5].map(s => `<span class="star ${s <= myRating ? 'filled' : ''}" onclick="rateJoke('${joke.id}', ${s})">⭐</span>`).join('')}
+            </div>
+            <span class="avg-rating">${avg > 0 ? avg.toFixed(1) + ' ('+ratingCount+')' : 'No ratings'}</span>
+          </div>
+        </div>
+        ${joke.authorId === state.currentUser ? `<div style="margin-top:10px;text-align:right"><button class="btn btn-danger" onclick="deleteJoke('${joke.id}')">Delete</button></div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderUserSelect() {
+  const selects = [document.getElementById('joke-author')];
+  selects.forEach(sel => {
+    if (!sel) return;
+    sel.innerHTML = state.users.length === 0
+      ? '<option value="">No users yet — add one first!</option>'
+      : state.users.map(u => `<option value="${u.id}" ${u.id === state.currentUser ? 'selected' : ''}>${u.name}</option>`).join('');
+  });
+}
+
+function renderUserList() {
+  const container = document.getElementById('user-list');
+  if (state.users.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">No users yet. Add one above!</p>';
+    return;
+  }
+  container.innerHTML = state.users.map(u => `
+    <div class="user-chip">
+      <div class="avatar" style="background:${u.color}">${u.name[0].toUpperCase()}</div>
+      <span>${u.name}</span>
+      <button class="remove" onclick="removeUser('${u.id}')" title="Remove">✕</button>
+    </div>
+  `).join('');
+}
+
+function renderLeaderboard() {
+  const container = document.getElementById('leaderboard');
+  if (state.users.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="emoji">🏆</div><p>Add users and jokes to see the leaderboard!</p></div>';
+    return;
+  }
+
+  const scores = state.users.map(u => {
+    const userJokes = state.jokes.filter(j => j.authorId === u.id);
+    const totalRating = userJokes.reduce((sum, j) => sum + avgRating(j), 0);
+    const avg = userJokes.length > 0 ? totalRating / userJokes.length : 0;
+    return { user: u, jokes: userJokes.length, avg, total: totalRating };
+  }).sort((a, b) => b.avg - a.avg || b.jokes - a.jokes);
+
+  const rankClass = (i) => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  const rankEmoji = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+
+  container.innerHTML = scores.map((s, i) => `
+    <div class="leaderboard-item">
+      <div class="rank ${rankClass(i)}">${rankEmoji(i)}</div>
+      <div class="avatar" style="background:${s.user.color}">${s.user.name[0].toUpperCase()}</div>
+      <div class="lb-info">
+        <div class="lb-name">${s.user.name}</div>
+        <div class="lb-stats">${s.jokes} joke${s.jokes !== 1 ? 's' : ''} • ${s.jokes > 0 ? s.avg.toFixed(1) + ' avg rating' : 'No jokes yet'}</div>
+      </div>
+      <div class="lb-score">${s.jokes > 0 ? s.avg.toFixed(1) + '⭐' : '—'}</div>
+    </div>
+  `).join('');
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────
+function addUser() {
+  const input = document.getElementById('new-username');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+    showToast('That name already exists!');
+    return;
+  }
+  const color = COLORS[state.users.length % COLORS.length];
+  const user = { id: uid(), name, color };
+  state.users.push(user);
+  if (!state.currentUser) state.currentUser = user.id;
+  input.value = '';
+  save();
+  render();
+  showToast('👤 ' + name + ' added!');
+}
+
+function removeUser(id) {
+  state.users = state.users.filter(u => u.id !== id);
+  if (state.currentUser === id) state.currentUser = state.users[0]?.id || null;
+  save();
+  render();
+}
+
+function addJoke() {
+  const text = document.getElementById('joke-text').value.trim();
+  const authorId = document.getElementById('joke-author').value;
+  if (!text) { showToast('Write a joke first! 😅'); return; }
+  if (!authorId) { showToast('Add a user first!'); return; }
+
+  state.jokes.push({
+    id: uid(),
+    text,
+    authorId,
+    ratings: {},
+    createdAt: Date.now()
+  });
+
+  state.currentUser = authorId;
+  document.getElementById('joke-text').value = '';
+  save();
+  render();
+  showToast('🎤 Joke posted!');
+  showPage('jokes');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.tab')[1].classList.remove('active');
+}
+
+function rateJoke(jokeId, rating) {
+  if (!state.currentUser) { showToast('Select a user to rate!'); return; }
+  const joke = state.jokes.find(j => j.id === jokeId);
+  if (!joke) return;
+  if (joke.authorId === state.currentUser) { showToast("Can't rate your own joke! 😄"); return; }
+  joke.ratings[state.currentUser] = rating;
+  save();
+  renderJokes();
+  showToast(['😐','😊','😄','😂','🤣'][rating - 1] + ' Rated ' + rating + ' star' + (rating !== 1 ? 's' : '') + '!');
+}
+
+function deleteJoke(id) {
+  state.jokes = state.jokes.filter(j => j.id !== id);
+  save();
+  render();
+  showToast('🗑️ Joke deleted');
+}
+
+function setSort(s) {
+  state.sort = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderJokes();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────
+function avgRating(joke) {
+  const vals = Object.values(joke.ratings);
+  if (!vals.length) return 0;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Handle joke-author select change to update currentUser
+document.getElementById('joke-author').addEventListener('change', e => {
+  state.currentUser = e.target.value;
+  save();
+  renderCurrentUser();
+});
+</script>
+</body>
+</html>
