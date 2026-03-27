@@ -333,6 +333,10 @@ let sort  = 'newest';
 // ── UTILITIES ────────────────────────────────────────────
 const genId    = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const escHtml  = s  => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+const withTimeout = (promise, ms=12000) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+]);
 const avgRating = j => {
   const v = Object.values(j.ratings || {});
   return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
@@ -400,7 +404,21 @@ window.doSignup = async () => {
   if (pass.length < 6)                  { errEl.textContent = 'Password must be 6+ characters.'; return; }
 
   try {
-    btn.disabled = true; btn.textContent = 'Creating…';
+    btn.disabled = true; btn.textContent = 'Checking…';
+
+    // Check username not taken (case-insensitive)
+    const snap = await withTimeout(get(ref(db, 'witze/users')));
+    const existing = snap.val() || {};
+    const taken = Object.values(existing).some(u =>
+      typeof u?.name === 'string' && u.name.trim().toLowerCase() === username
+    );
+    if (taken) {
+      errEl.textContent = 'That username is taken.';
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
+    }
+
+    btn.textContent = 'Creating…';
     const cred  = await createUserWithEmailAndPassword(auth, `${username}@witze.local`, pass);
     const existing = (await get(ref(db, 'witze/users'))).val() || {};
     const color = COLORS[Object.keys(existing).length % COLORS.length];
@@ -417,9 +435,8 @@ window.doSignup = async () => {
   } catch(e) {
     errEl.textContent =
       e.code === 'auth/email-already-in-use' ? 'That username is already taken.' :
-      e.code === 'auth/invalid-email' ? 'Use only letters, numbers and _ in username.' :
       e.code === 'auth/network-request-failed' ? 'Network error while signing up. Try again.' :
-      e.code === 'PERMISSION_DENIED' ? 'Database permissions blocked signup. Check Firebase rules.' :
+      e.message === 'timeout' ? 'Checking username took too long. Please try again.' :
                                                'Sign up failed. Try again.';
     btn.disabled = false; btn.textContent = 'Create Account';
   }
