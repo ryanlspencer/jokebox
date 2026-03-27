@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Witze">
+<meta name="theme-color" content="#111111">
+<title>Witze 🎤</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111111;
+    --surface: #1c1c1c;
+    --surface2: #252525;
+    --yellow: #FFE135;
+    --yellow-dim: #c9b020;
+    --red: #FF4545;
+    --green: #3DFF8F;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SETUP OVERLAY ── */
+  #setup-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 24px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  #setup-overlay.hidden { display: none; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+  .setup-box {
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.4s ease;
+  }
+
+  .setup-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    color: var(--yellow);
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .setup-logo span { color: var(--text); }
+
+  .setup-sub {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 36px;
+  }
+
+  .setup-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    color: var(--yellow);
+    margin-bottom: 12px;
+  }
+
+  .user-pick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .user-pick-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 2px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .user-pick-item:hover { border-color: var(--yellow); }
+  .user-pick-item.selected { border-color: var(--yellow); background: #2a2500; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #2a2a2a;
+  }
+
+  .new-user-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--bg);
+    border-bottom: 2px solid var(--yellow);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--yellow);
+    letter-spacing: 2px;
+  }
+
+  .logo span { color: var(--text); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sync-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+
+  .sync-indicator.syncing {
+    background: var(--yellow);
+    animation: pulse 1s infinite;
+  }
+
+  .sync-indicator.error {
+    background: var(--red);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .me-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 50px;
+    border: 1px solid #2a2a2a;
+    transition: border-color 0.2s;
+  }
+
+  .me-badge:hover { border-color: var(--yellow); }
+
+  .me-badge .name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .me-badge .label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px 0;
+    border-bottom: 1px solid #2a2a2a;
+    overflow-x: auto;
+  }
+
+  .tab {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    padding: 8px 18px;
+    border-radius: 8px 8px 0 0;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab.active { background: var(--yellow); color: #111; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 1px solid #2a2a2a;
+    transition: border-color 0.2s;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card.my-joke { border-color: #3a3000; }
+
+  .joke-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  .joke-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .joke-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .my-joke-tag {
+    font-size: 0.7rem;
+    background: var(--yellow);
+    color: #111;
+    padding: 2px 7px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #111;
+    flex-shrink: 0;
+  }
+
+  .avatar.lg {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+
+  /* ── STARS ── */
+  .stars { display: flex; gap: 4px; }
+
+  .star {
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+    filter: grayscale(1);
+    opacity: 0.4;
+  }
+
+  .star.filled { filter: none; opacity: 1; }
+  .star:hover { transform: scale(1.2); }
+
+  .cant-rate {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .avg-rating {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  /* ── FORMS ── */
+  .form-group { margin-bottom: 16px; }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  textarea, input[type="text"], select {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+
+  textarea { resize: vertical; min-height: 100px; }
+
+  textarea:focus, input:focus, select:focus {
+    outline: none;
+    border-color: var(--yellow);
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--yellow);
+    color: #111;
+    width: 100%;
+    font-size: 1.2rem;
+  }
+
+  .btn-primary:hover { background: var(--yellow-dim); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-sm {
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    width: auto;
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .btn-danger:hover { background: var(--red); color: #fff; }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--yellow);
+    border: 1px solid var(--yellow);
+  }
+
+  .btn-outline:hover { background: var(--yellow); color: #111; }
+
+  /* ── USER LIST ── */
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 2px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease;
+  }
+
+  .user-card.is-me { border-color: var(--yellow); }
+
+  .user-card-info { flex: 1; }
+  .user-card-name { font-weight: 700; font-size: 1rem; }
+  .user-card-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .is-me-tag {
+    font-size: 0.7rem;
+    background: var(--yellow);
+    color: #111;
+    padding: 3px 8px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── SORT BAR ── */
+  .sort-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .sort-btn {
+    background: var(--surface2);
+    border: 1px solid #333;
+    color: var(--muted);
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .sort-btn.active {
+    background: var(--yellow);
+    color: #111;
+    border-color: var(--yellow);
+    font-weight: 700;
+  }
+
+  /* ── LEADERBOARD ── */
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border: 1px solid #2a2a2a;
+    animation: slideIn 0.3s ease;
+  }
+
+  .leaderboard-item.is-me { border-color: var(--yellow); }
+
+  .rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--muted);
+    width: 32px;
+    text-align: center;
+  }
+
+  .rank.gold { color: #FFD700; }
+  .rank.silver { color: #C0C0C0; }
+  .rank.bronze { color: #CD7F32; }
+
+  .lb-info { flex: 1; }
+  .lb-name { font-weight: 700; font-size: 1rem; }
+  .lb-stats { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .lb-score { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--yellow); }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    color: var(--yellow);
+  }
+
+  /* ── EMPTY ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .empty .emoji { font-size: 3rem; margin-bottom: 12px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--yellow);
+    color: #111;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── CHANGE ME MODAL ── */
+  #change-me-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #change-me-modal.hidden { display: none; }
+
+  .modal-box {
+    background: var(--surface);
+    border-radius: 20px 20px 16px 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.3s ease;
+    border: 1px solid #333;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: var(--yellow);
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+
+  .modal-close {
+    float: right;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    margin-top: -4px;
+  }
+
+  /* Loading overlay */
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  #loading-overlay.hidden { display: none; }
+
+  .loading-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: var(--yellow);
+    letter-spacing: 3px;
+  }
+
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #2a2a2a;
+    border-top-color: var(--yellow);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="loading-logo">Witze 🎤</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Connecting...</div>
+</div>
+
+<!-- Setup overlay -->
+<div id="setup-overlay" class="hidden">
+  <div class="setup-box">
+    <div class="setup-logo">Wit<span>ze</span> 🎤</div>
+    <div class="setup-sub">The ultimate group joke rater</div>
+    <div class="setup-label">Who are you?</div>
+    <div class="user-pick-list" id="setup-user-list"></div>
+    <div class="divider">or add yourself</div>
+    <div class="new-user-row">
+      <input type="text" id="setup-new-name" placeholder="Your name..." maxlength="20" onkeydown="if(event.key==='Enter')setupAddUser()">
+      <button class="btn btn-outline btn-sm" onclick="setupAddUser()">Add</button>
+    </div>
+    <button class="btn btn-primary" onclick="confirmSetup()" id="setup-confirm-btn" disabled>
+      Let's Go 🎯
+    </button>
+  </div>
+</div>
+
+<!-- Change Me Modal -->
+<div id="change-me-modal" class="hidden">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeChangeMe()">✕</button>
+    <div class="modal-title">Change Identity</div>
+    <div class="user-pick-list" id="modal-user-list" style="max-height:200px"></div>
+    <div class="divider">or add yourself</div>
+    <div class="new-user-row">
+      <input type="text" id="modal-new-name" placeholder="Your name..." maxlength="20" onkeydown="if(event.key==='Enter')modalAddUser()">
+      <button class="btn btn-outline btn-sm" onclick="modalAddUser()">Add</button>
+    </div>
+    <button class="btn btn-primary" onclick="confirmChangeMe()" style="margin-top:8px">Save</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<header>
+  <div class="logo">Wit<span>ze</span> 🎤</div>
+  <div class="header-right">
+    <div class="sync-indicator" id="sync-dot" title="Sync status"></div>
+    <div class="me-badge" onclick="openChangeMe()" id="me-badge" title="Tap to change who you are">
+      <div class="avatar" id="header-avatar" style="background:#FFE135;color:#111">?</div>
+      <div>
+        <div class="label">You</div>
+        <div class="name" id="header-name">—</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showPage('jokes', this)">🎭 Jokes</button>
+  <button class="tab" onclick="showPage('add', this)">➕ Add</button>
+  <button class="tab" onclick="showPage('users', this)">👥 Users</button>
+  <button class="tab" onclick="showPage('board', this)">🏆 Board</button>
+</div>
+
+<!-- JOKES -->
+<div class="page active" id="page-jokes">
+  <div class="sort-bar">
+    <span style="font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Sort:</span>
+    <button class="sort-btn active" onclick="setSort('newest', this)">Newest</button>
+    <button class="sort-btn" onclick="setSort('top', this)">Top Rated</button>
+    <button class="sort-btn" onclick="setSort('mine', this)">Mine</button>
+  </div>
+  <div id="jokes-list"></div>
+</div>
+
+<!-- ADD JOKE -->
+<div class="page" id="page-add">
+  <div class="section-title">Drop a Joke 🎤</div>
+  <div class="form-group">
+    <label>Who told this joke?</label>
+    <select id="joke-author"></select>
+  </div>
+  <div class="form-group">
+    <label>The Joke</label>
+    <textarea id="joke-text" placeholder="Why don't scientists trust atoms? Because they make up everything!"></textarea>
+  </div>
+  <button class="btn btn-primary" onclick="addJoke()">🎯 Post Joke</button>
+</div>
+
+<!-- USERS -->
+<div class="page" id="page-users">
+  <div class="section-title">Comedians 👥</div>
+  <div class="form-group">
+    <label>Add a new user</label>
+    <div style="display:flex;gap:10px">
+      <input type="text" id="new-username" placeholder="Enter name..." maxlength="20" onkeydown="if(event.key==='Enter')addUser()">
+      <button class="btn btn-primary btn-sm" style="width:auto" onclick="addUser()">Add</button>
+    </div>
+  </div>
+  <div id="user-list"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="page" id="page-board">
+  <div class="section-title">Hall of Fame 🏆</div>
+  <div id="leaderboard"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// STORAGE API — shared across all devices
+// ─────────────────────────────────────────
+const STORAGE_KEY = 'witze_data_v1';
+
+async function loadFromCloud() {
+  try {
+    const result = await window.storage.get(STORAGE_KEY, true); // shared=true
+    if (result && result.value) {
+      return JSON.parse(result.value);
+    }
+  } catch (e) {
+    // key doesn't exist yet
+  }
+  return null;
+}
+
+async function saveToCloud(data) {
+  setSyncStatus('syncing');
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(data), true); // shared=true
+    setSyncStatus('ok');
+  } catch (e) {
+    console.error('Save failed', e);
+    setSyncStatus('error');
+  }
+}
+
+// ─────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'];
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let shared = { users: [], jokes: [] };
+let meId = null;
+let sort = 'newest';
+let setupSelectedId = null;
+let modalSelectedId = null;
+let pollTimer = null;
+
+// ─────────────────────────────────────────
+// SYNC STATUS DOT
+// ─────────────────────────────────────────
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-indicator';
+  if (status === 'syncing') dot.classList.add('syncing');
+  else if (status === 'error') dot.classList.add('error');
+}
+
+// ─────────────────────────────────────────
+// LOCAL IDENTITY (localStorage — per device)
+// ─────────────────────────────────────────
+function saveMe() { localStorage.setItem('witze_me_id', meId || ''); }
+function loadMe() { meId = localStorage.getItem('witze_me_id') || null; }
+
+// ─────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────
+async function boot() {
+  loadMe();
+  document.getElementById('loading-overlay').classList.remove('hidden');
+
+  const cloudData = await loadFromCloud();
+  if (cloudData) {
+    shared = cloudData;
+  }
+
+  document.getElementById('loading-overlay').classList.add('hidden');
+
+  const meExists = shared.users.find(u => u.id === meId);
+  if (!meId || !meExists) {
+    meId = null;
+    renderSetup();
+    document.getElementById('setup-overlay').classList.remove('hidden');
+  } else {
+    renderAll();
+  }
+
+  // Poll for updates every 8 seconds
+  pollTimer = setInterval(pollUpdates, 8000);
+}
+
+async function pollUpdates() {
+  const cloudData = await loadFromCloud();
+  if (!cloudData) return;
+  // Merge: cloud is source of truth for jokes/users
+  // But we keep local meId
+  shared = cloudData;
+  renderAll();
+}
+
+boot();
+
+// ─────────────────────────────────────────
+// SETUP
+// ─────────────────────────────────────────
+function renderSetup() {
+  const container = document.getElementById('setup-user-list');
+  if (shared.users.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;text-align:center;padding:10px">No users yet — add your name below!</p>';
+  } else {
+    container.innerHTML = shared.users.map(u => `
+      <div class="user-pick-item ${setupSelectedId === u.id ? 'selected' : ''}" onclick="selectSetupUser('${u.id}')">
+        <div class="avatar" style="background:${u.color}">${u.name[0].toUpperCase()}</div>
+        <span>${u.name}</span>
+      </div>
+    `).join('');
+  }
+  document.getElementById('setup-confirm-btn').disabled = !setupSelectedId;
+}
+
+function selectSetupUser(id) {
+  setupSelectedId = id;
+  renderSetup();
+}
+
+async function setupAddUser() {
+  const input = document.getElementById('setup-new-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (shared.users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Name already exists!');
+    return;
+  }
+  const user = { id: uid(), name, color: COLORS[shared.users.length % COLORS.length] };
+  shared.users.push(user);
+  await saveToCloud(shared);
+  setupSelectedId = user.id;
+  input.value = '';
+  renderSetup();
+}
+
+async function confirmSetup() {
+  if (!setupSelectedId) return;
+  meId = setupSelectedId;
+  saveMe();
+  document.getElementById('setup-overlay').classList.add('hidden');
+  renderAll();
+  showToast('👋 Welcome, ' + getMe().name + '!');
+}
+
+// ─────────────────────────────────────────
+// CHANGE ME MODAL
+// ─────────────────────────────────────────
+function openChangeMe() {
+  modalSelectedId = meId;
+  renderModalUserList();
+  document.getElementById('change-me-modal').classList.remove('hidden');
+}
+
+function closeChangeMe() {
+  document.getElementById('change-me-modal').classList.add('hidden');
+}
+
+function renderModalUserList() {
+  const container = document.getElementById('modal-user-list');
+  container.innerHTML = shared.users.map(u => `
+    <div class="user-pick-item ${modalSelectedId === u.id ? 'selected' : ''}" onclick="selectModalUser('${u.id}')">
+      <div class="avatar" style="background:${u.color}">${u.name[0].toUpperCase()}</div>
+      <span>${u.name}</span>
+      ${u.id === meId ? '<span class="is-me-tag">Current</span>' : ''}
+    </div>
+  `).join('');
+}
+
+function selectModalUser(id) {
+  modalSelectedId = id;
+  renderModalUserList();
+}
+
+async function modalAddUser() {
+  const input = document.getElementById('modal-new-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (shared.users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Name already exists!');
+    return;
+  }
+  const user = { id: uid(), name, color: COLORS[shared.users.length % COLORS.length] };
+  shared.users.push(user);
+  await saveToCloud(shared);
+  modalSelectedId = user.id;
+  input.value = '';
+  renderModalUserList();
+}
+
+async function confirmChangeMe() {
+  if (!modalSelectedId) return;
+  meId = modalSelectedId;
+  saveMe();
+  closeChangeMe();
+  renderAll();
+  showToast('✅ You are now ' + getMe().name);
+}
+
+// ─────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  renderAll();
+}
+
+// ─────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────
+function renderAll() {
+  renderHeader();
+  renderJokes();
+  renderAuthorSelect();
+  renderUserList();
+  renderLeaderboard();
+}
+
+function renderHeader() {
+  const me = getMe();
+  if (!me) return;
+  document.getElementById('header-avatar').textContent = me.name[0].toUpperCase();
+  document.getElementById('header-avatar').style.background = me.color;
+  document.getElementById('header-name').textContent = me.name;
+}
+
+function renderJokes() {
+  const container = document.getElementById('jokes-list');
+  let jokes = [...shared.jokes];
+
+  if (sort === 'top') jokes.sort((a, b) => avgRating(b) - avgRating(a));
+  else if (sort === 'mine') jokes = jokes.filter(j => j.authorId === meId);
+  else jokes.sort((a, b) => b.createdAt - a.createdAt);
+
+  if (jokes.length === 0) {
+    container.innerHTML = `<div class="empty"><div class="emoji">🦗</div><p>${sort === 'mine' ? "You haven't posted any jokes yet!" : 'No jokes yet. Be the first!'}</p></div>`;
+    return;
+  }
+
+  container.innerHTML = jokes.map(joke => {
+    const author = shared.users.find(u => u.id === joke.authorId);
+    const avg = avgRating(joke);
+    const myRating = joke.ratings[meId] || 0;
+    const ratingCount = Object.keys(joke.ratings).length;
+    const isMyJoke = joke.authorId === meId;
+
+    return `
+      <div class="card ${isMyJoke ? 'my-joke' : ''}">
+        <div class="joke-text">${escapeHtml(joke.text)}</div>
+        <div class="joke-meta">
+          <div class="joke-author">
+            ${author
+              ? `<div class="avatar" style="background:${author.color}">${author.name[0].toUpperCase()}</div>
+                 <span>${author.name}</span>`
+              : '<span>Unknown</span>'}
+            ${isMyJoke ? '<span class="my-joke-tag">You</span>' : ''}
+            <span style="color:#444">•</span>
+            <span>${timeAgo(joke.createdAt)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${isMyJoke
+              ? `<span class="cant-rate">Can't rate your own 😄</span>`
+              : `<div class="stars">
+                  ${[1,2,3,4,5].map(s =>
+                    `<span class="star ${s <= myRating ? 'filled' : ''}" onclick="rateJoke('${joke.id}', ${s})">⭐</span>`
+                  ).join('')}
+                </div>
+                <span class="avg-rating">${avg > 0 ? avg.toFixed(1) + ' (' + ratingCount + ')' : 'No ratings'}</span>`
+            }
+          </div>
+        </div>
+        ${isMyJoke ? `<div style="margin-top:10px;text-align:right"><button class="btn btn-danger" onclick="deleteJoke('${joke.id}')">Delete</button></div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderAuthorSelect() {
+  const sel = document.getElementById('joke-author');
+  if (!sel) return;
+  sel.innerHTML = shared.users.length === 0
+    ? '<option value="">No users yet!</option>'
+    : shared.users.map(u =>
+        `<option value="${u.id}" ${u.id === meId ? 'selected' : ''}>${u.name}${u.id === meId ? ' (You)' : ''}</option>`
+      ).join('');
+}
+
+function renderUserList() {
+  const container = document.getElementById('user-list');
+  if (!container) return;
+  if (shared.users.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">No users yet.</p>';
+    return;
+  }
+  container.innerHTML = shared.users.map(u => {
+    const jokes = shared.jokes.filter(j => j.authorId === u.id).length;
+    const isMe = u.id === meId;
+    return `
+      <div class="user-card ${isMe ? 'is-me' : ''}">
+        <div class="avatar lg" style="background:${u.color}">${u.name[0].toUpperCase()}</div>
+        <div class="user-card-info">
+          <div class="user-card-name">${u.name} ${isMe ? '<span class="is-me-tag">You</span>' : ''}</div>
+          <div class="user-card-sub">${jokes} joke${jokes !== 1 ? 's' : ''}</div>
+        </div>
+        ${!isMe ? `<button class="btn btn-outline btn-sm" onclick="switchToUser('${u.id}')">Be them</button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderLeaderboard() {
+  const container = document.getElementById('leaderboard');
+  if (!container) return;
+  if (shared.users.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="emoji">🏆</div><p>Add users and jokes to see rankings!</p></div>';
+    return;
+  }
+
+  const scores = shared.users.map(u => {
+    const userJokes = shared.jokes.filter(j => j.authorId === u.id);
+    const totalRating = userJokes.reduce((sum, j) => sum + avgRating(j), 0);
+    const avg = userJokes.length > 0 ? totalRating / userJokes.length : 0;
+    return { user: u, jokes: userJokes.length, avg };
+  }).sort((a, b) => b.avg - a.avg || b.jokes - a.jokes);
+
+  const rankEmoji = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+
+  container.innerHTML = scores.map((s, i) => `
+    <div class="leaderboard-item ${s.user.id === meId ? 'is-me' : ''}">
+      <div class="rank ${rankClass(i)}">${rankEmoji(i)}</div>
+      <div class="avatar" style="background:${s.user.color}">${s.user.name[0].toUpperCase()}</div>
+      <div class="lb-info">
+        <div class="lb-name">${s.user.name} ${s.user.id === meId ? '<span class="is-me-tag">You</span>' : ''}</div>
+        <div class="lb-stats">${s.jokes} joke${s.jokes !== 1 ? 's' : ''} • ${s.jokes > 0 ? s.avg.toFixed(1) + ' avg' : 'No jokes yet'}</div>
+      </div>
+      <div class="lb-score">${s.jokes > 0 ? s.avg.toFixed(1) + '⭐' : '—'}</div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────
+async function addUser() {
+  const input = document.getElementById('new-username');
+  const name = input.value.trim();
+  if (!name) return;
+  if (shared.users.find(u => u.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Name already exists!');
+    return;
+  }
+  const user = { id: uid(), name, color: COLORS[shared.users.length % COLORS.length] };
+  shared.users.push(user);
+  await saveToCloud(shared);
+  input.value = '';
+  renderAll();
+  showToast('👤 ' + name + ' added!');
+}
+
+async function switchToUser(id) {
+  meId = id;
+  saveMe();
+  renderAll();
+  showToast('✅ You are now ' + getMe().name);
+}
+
+async function addJoke() {
+  const text = document.getElementById('joke-text').value.trim();
+  const authorId = document.getElementById('joke-author').value;
+  if (!text) { showToast('Write a joke first! 😅'); return; }
+  if (!authorId) { showToast('Add a user first!'); return; }
+
+  shared.jokes.push({
+    id: uid(),
+    text,
+    authorId,
+    ratings: {},
+    createdAt: Date.now()
+  });
+
+  document.getElementById('joke-text').value = '';
+  await saveToCloud(shared);
+  renderAll();
+  showToast('🎤 Joke posted!');
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-jokes').classList.add('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+}
+
+async function rateJoke(jokeId, rating) {
+  const joke = shared.jokes.find(j => j.id === jokeId);
+  if (!joke) return;
+  joke.ratings[meId] = rating;
+  await saveToCloud(shared);
+  renderJokes();
+  showToast(['😐','😊','😄','😂','🤣'][rating - 1] + ' Rated ' + rating + ' star' + (rating !== 1 ? 's' : '') + '!');
+}
+
+async function deleteJoke(id) {
+  shared.jokes = shared.jokes.filter(j => j.id !== id);
+  await saveToCloud(shared);
+  renderAll();
+  showToast('🗑️ Joke deleted');
+}
+
+function setSort(s, btn) {
+  sort = s;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderJokes();
+}
+
+// ─────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────
+function getMe() { return shared.users.find(u => u.id === meId); }
+function avgRating(joke) {
+  const vals = Object.values(joke.ratings);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+}
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
