@@ -472,6 +472,11 @@ onAuthStateChanged(auth, (user) => {
     if (sb) { sb.disabled=false; sb.textContent='Create Account'; }
     if (lb) { lb.disabled=false; lb.textContent='Login'; }
   }
+}, () => {
+  // If auth listener errors (network/config), avoid trapping users behind loading screen.
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Connection issue. Please refresh and try again.';
 });
 
 // ── RENDER ───────────────────────────────────────────────
