@@ -307,7 +307,7 @@ import { initializeApp }
 import { getDatabase, ref, set, get, onValue }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword,
-         signInWithEmailAndPassword, onAuthStateChanged, signOut }
+         signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // ── FIREBASE ─────────────────────────────────────────────
@@ -420,10 +420,17 @@ window.doSignup = async () => {
 
     btn.textContent = 'Creating…';
     const cred  = await createUserWithEmailAndPassword(auth, `${username}@witze.local`, pass);
+    const existing = (await get(ref(db, 'witze/users'))).val() || {};
     const color = COLORS[Object.keys(existing).length % COLORS.length];
-    await set(ref(db, `witze/users/${cred.user.uid}`), {
-      id: cred.user.uid, name: displayName, color
-    });
+    try {
+      await set(ref(db, `witze/users/${cred.user.uid}`), {
+        id: cred.user.uid, name: displayName, color
+      });
+    } catch (dbErr) {
+      // If profile creation fails, clean up auth user so they can retry immediately.
+      await deleteUser(cred.user).catch(() => {});
+      throw dbErr;
+    }
     // onAuthStateChanged will fire and take it from here
   } catch(e) {
     errEl.textContent =
