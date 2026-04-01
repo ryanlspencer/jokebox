@@ -396,32 +396,30 @@ window.doSignup = async () => {
   errEl.textContent = '';
 
   if (!displayName)                     { errEl.textContent = 'Pick a username.'; return; }
-  if (!/^[a-z0-9_\s]+$/i.test(displayName)) { errEl.textContent = 'Letters, numbers, spaces and _ only.'; return; }
+  if (!/^[a-z0-9_]+$/i.test(displayName)) { errEl.textContent = 'Letters, numbers and _ only.'; return; }
   if (pass.length < 6)                  { errEl.textContent = 'Password must be 6+ characters.'; return; }
 
-  btn.disabled = true; btn.textContent = 'Checking…';
-
-  // Check username not taken (case-insensitive)
-  const snap = await get(ref(db, 'witze/users'));
-  const existing = snap.val() || {};
-  const taken = Object.values(existing).some(u => u.name.toLowerCase() === username);
-  if (taken) {
-    errEl.textContent = 'That username is taken.';
-    btn.disabled = false; btn.textContent = 'Create Account';
-    return;
-  }
-
-  btn.textContent = 'Creating…';
   try {
+    btn.disabled = true; btn.textContent = 'Creating…';
     const cred  = await createUserWithEmailAndPassword(auth, `${username}@witze.local`, pass);
+    const existing = (await get(ref(db, 'witze/users'))).val() || {};
     const color = COLORS[Object.keys(existing).length % COLORS.length];
-    await set(ref(db, `witze/users/${cred.user.uid}`), {
-      id: cred.user.uid, name: displayName, color
-    });
+    try {
+      await set(ref(db, `witze/users/${cred.user.uid}`), {
+        id: cred.user.uid, name: displayName, color
+      });
+    } catch (dbErr) {
+      // If profile creation fails, clean up auth user so they can retry immediately.
+      await cred.user.delete().catch(() => {});
+      throw dbErr;
+    }
     // onAuthStateChanged will fire and take it from here
   } catch(e) {
     errEl.textContent =
       e.code === 'auth/email-already-in-use' ? 'That username is already taken.' :
+      e.code === 'auth/invalid-email' ? 'Use only letters, numbers and _ in username.' :
+      e.code === 'auth/network-request-failed' ? 'Network error while signing up. Try again.' :
+      e.code === 'PERMISSION_DENIED' ? 'Database permissions blocked signup. Check Firebase rules.' :
                                                'Sign up failed. Try again.';
     btn.disabled = false; btn.textContent = 'Create Account';
   }
@@ -431,8 +429,17 @@ window.doLogout = () => signOut(auth);
 
 // ── AUTH STATE LISTENER ──────────────────────────────────
 document.getElementById('loading-overlay').classList.remove('hidden');
+let authResolved = false;
+const authFallbackTimer = setTimeout(() => {
+  if (authResolved) return;
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Still connecting… you can try logging in now.';
+}, 6000);
 
 onAuthStateChanged(auth, (user) => {
+  authResolved = true;
+  clearTimeout(authFallbackTimer);
   document.getElementById('loading-overlay').classList.add('hidden');
 
   if (user) {
@@ -457,6 +464,13 @@ onAuthStateChanged(auth, (user) => {
     if (sb) { sb.disabled=false; sb.textContent='Create Account'; }
     if (lb) { lb.disabled=false; lb.textContent='Login'; }
   }
+}, () => {
+  authResolved = true;
+  clearTimeout(authFallbackTimer);
+  // If auth listener errors (network/config), avoid trapping users behind loading screen.
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Connection issue. Please refresh and try again.';
 });
 
 // ── RENDER ───────────────────────────────────────────────
