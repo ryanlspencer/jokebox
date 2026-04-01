@@ -446,8 +446,17 @@ window.doLogout = () => signOut(auth);
 
 // ── AUTH STATE LISTENER ──────────────────────────────────
 document.getElementById('loading-overlay').classList.remove('hidden');
+let authResolved = false;
+const authFallbackTimer = setTimeout(() => {
+  if (authResolved) return;
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Still connecting… you can try logging in now.';
+}, 6000);
 
 onAuthStateChanged(auth, (user) => {
+  authResolved = true;
+  clearTimeout(authFallbackTimer);
   document.getElementById('loading-overlay').classList.add('hidden');
 
   if (user) {
