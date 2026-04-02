@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Witze">
+<meta name="theme-color" content="#111111">
+<title>Witze 🎤</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111111;
+    --surface: #1c1c1c;
+    --surface2: #252525;
+    --yellow: #FFE135;
+    --yellow-dim: #c9b020;
+    --red: #FF4545;
+    --green: #3DFF8F;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  @keyframes fadeIn  { from { opacity:0; }                           to { opacity:1; } }
+  @keyframes slideUp { from { opacity:0; transform:translateY(30px);} to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn { from { opacity:0; transform:translateY(10px);} to { opacity:1; transform:translateY(0); } }
+  @keyframes spin    { to   { transform:rotate(360deg); } }
+  @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  @keyframes autoHideLoading { to { opacity:0; visibility:hidden; pointer-events:none; } }
+
+  /* ── LOADING ── */
+  #loading-overlay {
+    position:fixed; inset:0; background:var(--bg); z-index:2000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    animation:autoHideLoading 0s linear 10s forwards;
+  }
+  #loading-overlay.hidden { display:none; }
+  .loading-logo   { font-family:'Bebas Neue',sans-serif; font-size:3rem; color:var(--yellow); letter-spacing:3px; }
+  .loading-spinner{ width:32px; height:32px; border:3px solid #2a2a2a; border-top-color:var(--yellow); border-radius:50%; animation:spin 0.8s linear infinite; }
+  .loading-text   { color:var(--muted); font-size:0.9rem; }
+
+  /* ── AUTH ── */
+  #auth-overlay {
+    position:fixed; inset:0; background:var(--bg); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:30px 24px;
+    animation:fadeIn 0.3s ease;
+  }
+  #auth-overlay.hidden { display:none; }
+
+  .auth-box  { width:100%; max-width:400px; animation:slideUp 0.4s ease; }
+  .auth-logo { font-family:'Bebas Neue',sans-serif; font-size:3.5rem; color:var(--yellow); letter-spacing:3px; text-align:center; margin-bottom:6px; }
+  .auth-logo span { color:var(--text); }
+  .auth-sub  { text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:32px; }
+
+  .auth-tabs { display:flex; margin-bottom:24px; border-radius:12px; overflow:hidden; border:1px solid #333; }
+  .auth-tab  {
+    flex:1; padding:10px; text-align:center; cursor:pointer;
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1px;
+    background:var(--surface2); color:var(--muted); border:none; transition:all 0.2s;
+  }
+  .auth-tab.active { background:var(--yellow); color:#111; }
+
+  .auth-form        { display:flex; flex-direction:column; gap:12px; }
+  .auth-form.hidden { display:none; }
+
+  .field-label { display:block; font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .auth-error  { color:var(--red); font-size:0.85rem; text-align:center; min-height:18px; }
+
+  /* ── HEADER ── */
+  header {
+    background:var(--bg); border-bottom:2px solid var(--yellow);
+    padding:14px 20px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+  }
+  .logo     { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:var(--yellow); letter-spacing:2px; }
+  .logo span{ color:var(--text); }
+  .hdr-right{ display:flex; align-items:center; gap:10px; }
+
+  .sync-dot        { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; transition:background 0.3s; }
+  .sync-dot.syncing{ background:var(--yellow); animation:pulse 1s infinite; }
+  .sync-dot.error  { background:var(--red); }
+
+  .me-badge{ display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:50px; border:1px solid #2a2a2a; }
+  .me-label{ font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; line-height:1; }
+  .me-name { font-size:0.85rem; font-weight:600; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .logout-btn{ background:none; border:none; color:var(--muted); font-size:0.75rem; cursor:pointer; padding:4px 8px; border-radius:6px; font-family:'DM Sans',sans-serif; }
+  .logout-btn:hover{ color:var(--red); }
+
+  /* ── TABS ── */
+  .tabs{ display:flex; gap:8px; padding:14px 20px 0; border-bottom:1px solid #2a2a2a; overflow-x:auto; }
+  .tab {
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1px;
+    padding:8px 18px; border-radius:8px 8px 0 0; border:none;
+    background:transparent; color:var(--muted); cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .tab.active{ background:var(--yellow); color:#111; }
+
+  /* ── PAGES ── */
+  .page       { display:none; padding:20px; }
+  .page.active{ display:block; }
+
+  /* ── CARDS ── */
+  .card {
+    background:var(--surface); border-radius:var(--radius); padding:18px; margin-bottom:14px;
+    border:1px solid #2a2a2a; animation:slideIn 0.3s ease;
+  }
+  .card.my-joke{ border-color:#3a3000; }
+
+  .joke-text{ font-size:1.05rem; line-height:1.6; margin-bottom:14px; }
+  .joke-meta{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .joke-author{ display:flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--muted); flex-wrap:wrap; }
+
+  .tag        { font-size:0.7rem; padding:2px 7px; border-radius:50px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+  .tag-yellow { background:var(--yellow); color:#111; }
+
+  .avatar    { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:#111; flex-shrink:0; }
+  .avatar.lg { width:38px; height:38px; font-size:1rem; }
+
+  .stars   { display:flex; gap:4px; }
+  .star    { font-size:1.4rem; cursor:pointer; transition:transform 0.15s; filter:grayscale(1); opacity:0.4; }
+  .star.filled { filter:none; opacity:1; }
+  .star:hover  { transform:scale(1.2); }
+  .cant-rate   { font-size:0.75rem; color:var(--muted); font-style:italic; }
+  .avg-rating  { font-size:0.8rem; color:var(--muted); margin-left:4px; }
+
+  /* ── FORMS ── */
+  .fg       { margin-bottom:16px; }
+  .fg label { display:block; font-size:0.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+
+  textarea, input[type="text"], input[type="password"], select {
+    width:100%; background:var(--surface2); color:var(--text);
+    border:1px solid #333; border-radius:10px; padding:12px 14px;
+    font-family:'DM Sans',sans-serif; font-size:0.95rem; transition:border-color 0.2s;
+  }
+  textarea { resize:vertical; min-height:100px; }
+  textarea:focus, input:focus, select:focus { outline:none; border-color:var(--yellow); }
+
+  .btn        { padding:12px 24px; border-radius:10px; border:none; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:1px; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn-primary{ background:var(--yellow); color:#111; width:100%; font-size:1.2rem; }
+  .btn-primary:hover   { background:var(--yellow-dim); transform:translateY(-1px); }
+  .btn-primary:active  { transform:translateY(0); }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
+  .btn-sm     { padding:8px 16px; font-size:0.95rem; width:auto; }
+  .btn-danger { background:transparent; color:var(--red); border:1px solid var(--red); padding:6px 12px; font-size:0.85rem; }
+  .btn-danger:hover{ background:var(--red); color:#fff; }
+
+  /* ── USER CARDS ── */
+  .user-card      { display:flex; align-items:center; gap:12px; background:var(--surface); border:2px solid #2a2a2a; border-radius:12px; padding:12px 16px; margin-bottom:10px; animation:slideIn 0.3s ease; }
+  .user-card.is-me{ border-color:var(--yellow); }
+  .uc-info { flex:1; }
+  .uc-name { font-weight:700; font-size:1rem; }
+  .uc-sub  { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+  /* ── SORT BAR ── */
+  .sort-bar{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .sort-btn{ background:var(--surface2); border:1px solid #333; color:var(--muted); border-radius:50px; padding:6px 14px; font-size:0.8rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .sort-btn.active{ background:var(--yellow); color:#111; border-color:var(--yellow); font-weight:700; }
+
+  /* ── LEADERBOARD ── */
+  .lb-item       { display:flex; align-items:center; gap:14px; background:var(--surface); border-radius:var(--radius); padding:14px 18px; margin-bottom:10px; border:1px solid #2a2a2a; animation:slideIn 0.3s ease; }
+  .lb-item.is-me { border-color:var(--yellow); }
+  .rank          { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:var(--muted); width:32px; text-align:center; }
+  .rank.gold     { color:#FFD700; }
+  .rank.silver   { color:#C0C0C0; }
+  .rank.bronze   { color:#CD7F32; }
+  .lb-info { flex:1; }
+  .lb-name { font-weight:700; font-size:1rem; }
+  .lb-stats{ font-size:0.8rem; color:var(--muted); margin-top:2px; }
+  .lb-score{ font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--yellow); }
+
+  /* ── MISC ── */
+  .section-title{ font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:1px; margin-bottom:16px; color:var(--yellow); }
+  .empty        { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty .emoji { font-size:3rem; margin-bottom:12px; }
+
+  .toast{
+    position:fixed; bottom:30px; left:50%;
+    transform:translateX(-50%) translateY(100px);
+    background:var(--yellow); color:#111; padding:12px 24px;
+    border-radius:50px; font-weight:700; font-size:0.9rem;
+    z-index:9999; transition:transform 0.3s ease; white-space:nowrap;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="loading-logo">Witze 🎤</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Connecting...</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">Wit<span>ze</span> 🎤</div>
+    <div class="auth-sub">The ultimate group joke rater</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+      <button class="auth-tab"        onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form" id="form-login">
+      <div class="fg">
+        <label class="field-label">Username</label>
+        <input type="text"     id="login-user" placeholder="your username" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="fg">
+        <label class="field-label">Password</label>
+        <input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button class="btn btn-primary" onclick="doLogin()" id="login-btn">Login</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="auth-form hidden" id="form-signup">
+      <div class="fg">
+        <label class="field-label">Pick a username</label>
+        <input type="text"     id="signup-user" placeholder="your name" autocomplete="username" autocapitalize="none" maxlength="20">
+      </div>
+      <div class="fg">
+        <label class="field-label">Password (6+ characters)</label>
+        <input type="password" id="signup-pass" placeholder="••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <div class="auth-error" id="signup-error"></div>
+      <button class="btn btn-primary" onclick="doSignup()" id="signup-btn">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Wit<span>ze</span> 🎤</div>
+  <div class="hdr-right">
+    <div class="sync-dot" id="sync-dot"></div>
+    <div class="me-badge">
+      <div class="avatar" id="header-avatar" style="background:#FFE135;color:#111">?</div>
+      <div>
+        <div class="me-label">You</div>
+        <div class="me-name" id="header-name">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showPage('jokes',this)">🎭 Jokes</button>
+  <button class="tab"        onclick="showPage('add',this)">➕ Add</button>
+  <button class="tab"        onclick="showPage('users',this)">👥 Users</button>
+  <button class="tab"        onclick="showPage('board',this)">🏆 Board</button>
+</div>
+
+<!-- JOKES PAGE -->
+<div class="page active" id="page-jokes">
+  <div class="sort-bar">
+    <span style="font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Sort:</span>
+    <button class="sort-btn active" onclick="setSort('newest',this)">Newest</button>
+    <button class="sort-btn"        onclick="setSort('top',this)">Top Rated</button>
+    <button class="sort-btn"        onclick="setSort('mine',this)">Mine</button>
+  </div>
+  <div id="jokes-list"></div>
+</div>
+
+<!-- ADD PAGE -->
+<div class="page" id="page-add">
+  <div class="section-title">Drop a Joke 🎤</div>
+  <div class="fg">
+    <label>Who told this joke?</label>
+    <select id="joke-author"></select>
+  </div>
+  <div class="fg">
+    <label>The Joke</label>
+    <textarea id="joke-text" placeholder="Why don't scientists trust atoms? Because they make up everything!"></textarea>
+  </div>
+  <button class="btn btn-primary" onclick="addJoke()">🎯 Post Joke</button>
+</div>
+
+<!-- USERS PAGE -->
+<div class="page" id="page-users">
+  <div class="section-title">Comedians 👥</div>
+  <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px">Everyone here has their own account. New members sign up themselves.</p>
+  <div id="user-list"></div>
+</div>
+
+<!-- BOARD PAGE -->
+<div class="page" id="page-board">
+  <div class="section-title">Hall of Fame 🏆</div>
+  <div id="leaderboard"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Bootstrap fallback: if module scripts fail to load/execute, don't trap users on loading screen.
+window.__bootFallbackTimer = setTimeout(() => {
+  const loading = document.getElementById('loading-overlay');
+  const auth = document.getElementById('auth-overlay');
+  const loginErr = document.getElementById('login-error');
+  if (loading) loading.classList.add('hidden');
+  if (auth) auth.classList.remove('hidden');
+  if (loginErr) loginErr.textContent = 'App failed to initialize. Refresh and try again.';
+}, 7000);
+</script>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, onValue }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, onAuthStateChanged, signOut, deleteUser }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// ── FIREBASE ─────────────────────────────────────────────
+const app = initializeApp({
+  apiKey:            "AIzaSyBQo_7b-SdxFqMyyKQn0Lm6vYU9bDVbPQE",
+  authDomain:        "witze-2a846.firebaseapp.com",
+  databaseURL:       "https://witze-2a846-default-rtdb.firebaseio.com/",
+  projectId:         "witze-2a846",
+  storageBucket:     "witze-2a846.firebasestorage.app",
+  messagingSenderId: "899728157308",
+  appId:             "1:899728157308:web:e52145a44e5a8fc3ccb7f9"
+});
+const db   = getDatabase(app);
+const auth = getAuth(app);
+
+// ── STATE ─────────────────────────────────────────────────
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'];
+let users = {};  // { [uid]: { id, name, color } }
+let jokes = [];  // array of joke objects
+let meUid = null;
+let sort  = 'newest';
+
+// ── UTILITIES ────────────────────────────────────────────
+const genId    = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const escHtml  = s  => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+const withTimeout = (promise, ms=12000) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+]);
+const avgRating = j => {
+  const v = Object.values(j.ratings || {});
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
+};
+const timeAgo = ts => {
+  const m = Math.floor((Date.now()-ts)/60000);
+  if (m<1)  return 'just now';
+  if (m<60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if (h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+function setSyncDot(s) {
+  const d = document.getElementById('sync-dot');
+  d.className = 'sync-dot' + (s==='syncing'?' syncing': s==='error'?' error':'');
+}
+
+// ── AUTH UI ──────────────────────────────────────────────
+window.switchAuthTab = (tab) => {
+  document.querySelectorAll('.auth-tab').forEach((t,i) =>
+    t.classList.toggle('active', tab==='login' ? i===0 : i===1)
+  );
+  document.getElementById('form-login').classList.toggle('hidden',  tab!=='login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab!=='signup');
+  document.getElementById('login-error').textContent  = '';
+  document.getElementById('signup-error').textContent = '';
+};
+
+window.doLogin = async () => {
+  const username = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass     = document.getElementById('login-pass').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  errEl.textContent = '';
+  if (!username || !pass) { errEl.textContent = 'Fill in both fields.'; return; }
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    await signInWithEmailAndPassword(auth, `${username}@witze.local`, pass);
+  } catch(e) {
+    errEl.textContent =
+      e.code === 'auth/invalid-credential'   ? 'Wrong username or password.' :
+      e.code === 'auth/too-many-requests'    ? 'Too many attempts. Try later.' :
+                                               'Login failed. Check your details.';
+    btn.disabled = false; btn.textContent = 'Login';
+  }
+};
+
+window.doSignup = async () => {
+  const displayName = document.getElementById('signup-user').value.trim();
+  const username    = displayName.toLowerCase();
+  const pass        = document.getElementById('signup-pass').value;
+  const errEl       = document.getElementById('signup-error');
+  const btn         = document.getElementById('signup-btn');
+  errEl.textContent = '';
+
+  if (!displayName)                        { errEl.textContent = 'Pick a username.'; return; }
+  if (!/^[a-z0-9_]+$/i.test(displayName)) { errEl.textContent = 'Letters, numbers and _ only.'; return; }
+  if (pass.length < 6)                     { errEl.textContent = 'Password must be 6+ characters.'; return; }
+
+  try {
+    btn.disabled = true; btn.textContent = 'Checking…';
+
+    // Check username not taken (case-insensitive)
+    const snap = await withTimeout(get(ref(db, 'witze/users')));
+    const existingUsers = snap.val() || {};
+    const taken = Object.values(existingUsers).some(u =>
+      typeof u?.name === 'string' && u.name.trim().toLowerCase() === username
+    );
+    if (taken) {
+      errEl.textContent = 'That username is taken.';
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
+    }
+
+    btn.textContent = 'Creating…';
+    const cred  = await createUserWithEmailAndPassword(auth, `${username}@witze.local`, pass);
+    const color = COLORS[Object.keys(existingUsers).length % COLORS.length];
+    try {
+      await set(ref(db, `witze/users/${cred.user.uid}`), {
+        id: cred.user.uid, name: displayName, color
+      });
+    } catch (dbErr) {
+      // If profile creation fails, clean up auth user so they can retry immediately.
+      await deleteUser(cred.user).catch(() => {});
+      throw dbErr;
+    }
+    // onAuthStateChanged will fire and take it from here
+  } catch(e) {
+    errEl.textContent =
+      e.code === 'auth/email-already-in-use'   ? 'That username is already taken.' :
+      e.code === 'auth/network-request-failed' ? 'Network error while signing up. Try again.' :
+      e.message === 'timeout'                  ? 'Checking username took too long. Please try again.' :
+                                                 'Sign up failed. Try again.';
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+};
+
+window.doLogout = () => signOut(auth);
+
+// ── AUTH STATE LISTENER ──────────────────────────────────
+document.getElementById('loading-overlay').classList.remove('hidden');
+let authResolved = false;
+const authFallbackTimer = setTimeout(() => {
+  if (authResolved) return;
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Still connecting… you can try logging in now.';
+}, 6000);
+
+onAuthStateChanged(auth, (user) => {
+  authResolved = true;
+  clearTimeout(authFallbackTimer);
+  clearTimeout(window.__bootFallbackTimer);
+  document.getElementById('loading-overlay').classList.add('hidden');
+
+  if (user) {
+    meUid = user.uid;
+    document.getElementById('auth-overlay').classList.add('hidden');
+
+    // Real-time listener — fires immediately + on every change
+    onValue(ref(db, 'witze'), (snap) => {
+      const data = snap.val() || {};
+      users = data.users || {};
+      // Firebase stores jokes as object keyed by id; convert to array
+      jokes = data.jokes ? Object.values(data.jokes) : [];
+      renderAll();
+      setSyncDot('ok');
+    });
+
+  } else {
+    meUid = null;
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    const sb = document.getElementById('signup-btn');
+    const lb = document.getElementById('login-btn');
+    if (sb) { sb.disabled=false; sb.textContent='Create Account'; }
+    if (lb) { lb.disabled=false; lb.textContent='Login'; }
+  }
+}, () => {
+  // If auth listener errors (network/config), avoid trapping users behind loading screen.
+  document.getElementById('loading-overlay').classList.add('hidden');
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('login-error').textContent = 'Connection issue. Please refresh and try again.';
+});
+
+// ── RENDER ───────────────────────────────────────────────
+function renderAll() {
+  renderHeader();
+  renderJokes();
+  renderAuthorSelect();
+  renderUsers();
+  renderLeaderboard();
+}
+
+function renderHeader() {
+  const me = users[meUid];
+  if (!me) return;
+  const av = document.getElementById('header-avatar');
+  av.textContent     = me.name[0].toUpperCase();
+  av.style.background = me.color;
+  document.getElementById('header-name').textContent = me.name;
+}
+
+function renderJokes() {
+  const container = document.getElementById('jokes-list');
+  let list = [...jokes];
+  if      (sort==='top')  list.sort((a,b) => avgRating(b)-avgRating(a));
+  else if (sort==='mine') list = list.filter(j => j.postedBy === meUid);
+  else                    list.sort((a,b) => b.createdAt-a.createdAt);
+
+  if (!list.length) {
+    container.innerHTML = `<div class="empty"><div class="emoji">🦗</div><p>${
+      sort==='mine' ? "You haven't posted any jokes yet!" : 'No jokes yet. Be the first!'
+    }</p></div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(joke => {
+    const credited  = users[joke.creditedTo];  // who the joke is displayed "by"
+    const poster    = users[joke.postedBy];    // who submitted it
+    const avg       = avgRating(joke);
+    const myRating  = (joke.ratings||{})[meUid] || 0;
+    const rCount    = Object.keys(joke.ratings||{}).length;
+
+    // Only the person who *posted* it sees the Delete button
+    const iPosted   = joke.postedBy  === meUid;
+    // Can't rate jokes credited to yourself
+    const cantRate  = joke.creditedTo === meUid;
+
+    // Show "posted by X" note when poster ≠ credited person
+    const posterNote = (poster && credited && poster.id !== credited.id)
+      ? `<span style="color:#555;font-size:0.72rem;margin-left:4px">(posted by ${escHtml(poster.name)})</span>`
+      : '';
+
+    return `
+      <div class="card ${iPosted ? 'my-joke' : ''}">
+        <div class="joke-text">${escHtml(joke.text)}</div>
+        <div class="joke-meta">
+          <div class="joke-author">
+            ${credited
+              ? `<div class="avatar" style="background:${credited.color}">${credited.name[0].toUpperCase()}</div>
+                 <span>${escHtml(credited.name)}</span>${posterNote}`
+              : '<span>Unknown</span>'}
+            ${joke.creditedTo===meUid ? `<span class="tag tag-yellow">You</span>` : ''}
+            <span style="color:#444">•</span>
+            <span>${timeAgo(joke.createdAt)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${cantRate
+              ? `<span class="cant-rate">Can't rate your own 😄</span>`
+              : `<div class="stars">
+                  ${[1,2,3,4,5].map(s =>
+                    `<span class="star ${s<=myRating?'filled':''}"
+                       onclick="window._rateJoke('${joke.id}',${s})">⭐</span>`
+                  ).join('')}
+                </div>
+                <span class="avg-rating">${avg>0 ? avg.toFixed(1)+' ('+rCount+')' : 'No ratings'}</span>`
+            }
+          </div>
+        </div>
+        ${iPosted
+          ? `<div style="margin-top:10px;text-align:right">
+               <button class="btn btn-danger" onclick="window._deleteJoke('${joke.id}')">Delete</button>
+             </div>`
+          : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderAuthorSelect() {
+  const sel = document.getElementById('joke-author');
+  if (!sel) return;
+  const list = Object.values(users);
+  sel.innerHTML = list.length
+    ? list.map(u => `<option value="${u.id}" ${u.id===meUid?'selected':''}>${escHtml(u.name)}${u.id===meUid?' (You)':''}</option>`).join('')
+    : '<option value="">No users yet!</option>';
+}
+
+function renderUsers() {
+  const container = document.getElementById('user-list');
+  if (!container) return;
+  const list = Object.values(users);
+  if (!list.length) { container.innerHTML='<p style="color:var(--muted)">No users yet.</p>'; return; }
+  container.innerHTML = list.map(u => {
+    const jCount = jokes.filter(j=>j.creditedTo===u.id).length;
+    const isMe   = u.id === meUid;
+    return `
+      <div class="user-card ${isMe?'is-me':''}">
+        <div class="avatar lg" style="background:${u.color}">${u.name[0].toUpperCase()}</div>
+        <div class="uc-info">
+          <div class="uc-name">${escHtml(u.name)} ${isMe?'<span class="tag tag-yellow">You</span>':''}</div>
+          <div class="uc-sub">${jCount} joke${jCount!==1?'s':''}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderLeaderboard() {
+  const container = document.getElementById('leaderboard');
+  if (!container) return;
+  const list = Object.values(users);
+  if (!list.length) {
+    container.innerHTML = '<div class="empty"><div class="emoji">🏆</div><p>Sign up and post jokes to see rankings!</p></div>';
+    return;
+  }
+  const scores = list.map(u => {
+    const uJokes = jokes.filter(j=>j.creditedTo===u.id);
+    const total  = uJokes.reduce((s,j)=>s+avgRating(j), 0);
+    return { user:u, count:uJokes.length, avg: uJokes.length ? total/uJokes.length : 0 };
+  }).sort((a,b) => b.avg-a.avg || b.count-a.count);
+
+  const rankEmoji = i => ['🥇','🥈','🥉'][i] ?? (i+1);
+  const rankClass = i => ['gold','silver','bronze'][i] ?? '';
+
+  container.innerHTML = scores.map((s,i) => `
+    <div class="lb-item ${s.user.id===meUid?'is-me':''}">
+      <div class="rank ${rankClass(i)}">${rankEmoji(i)}</div>
+      <div class="avatar" style="background:${s.user.color}">${s.user.name[0].toUpperCase()}</div>
+      <div class="lb-info">
+        <div class="lb-name">${escHtml(s.user.name)} ${s.user.id===meUid?'<span class="tag tag-yellow">You</span>':''}</div>
+        <div class="lb-stats">${s.count} joke${s.count!==1?'s':''} • ${s.count>0?s.avg.toFixed(1)+' avg':'No jokes yet'}</div>
+      </div>
+      <div class="lb-score">${s.count>0?s.avg.toFixed(1)+'⭐':'—'}</div>
+    </div>`
+  ).join('');
+}
+
+// ── ACTIONS ──────────────────────────────────────────────
+window.addJoke = async () => {
+  const text       = document.getElementById('joke-text').value.trim();
+  const creditedTo = document.getElementById('joke-author').value;
+  if (!text)       { showToast('Write a joke first! 😅'); return; }
+  if (!creditedTo) { showToast('No users yet!'); return; }
+
+  setSyncDot('syncing');
+  const id = genId();
+  await set(ref(db, `witze/jokes/${id}`), {
+    id,
+    text,
+    creditedTo,       // displayed "by" this user
+    postedBy: meUid,  // submitted by — ONLY this uid may delete
+    ratings: {},
+    createdAt: Date.now()
+  });
+  document.getElementById('joke-text').value = '';
+  showToast('🎤 Joke posted!');
+  showPage('jokes', document.querySelectorAll('.tab')[0]);
+};
+
+window._rateJoke = async (jokeId, rating) => {
+  const joke = jokes.find(j=>j.id===jokeId);
+  if (!joke) return;
+  if (joke.creditedTo === meUid) return; // double-guard: can't rate your own credited joke
+  setSyncDot('syncing');
+  await set(ref(db, `witze/jokes/${jokeId}/ratings/${meUid}`), rating);
+  showToast(['😐','😊','😄','😂','🤣'][rating-1]+' Rated '+rating+' star'+(rating!==1?'s':'')+'!');
+};
+
+window._deleteJoke = async (jokeId) => {
+  const joke = jokes.find(j=>j.id===jokeId);
+  // Server-side guard: only the person who *posted* it can delete
+  if (!joke || joke.postedBy !== meUid) {
+    showToast("You can't delete that.");
+    return;
+  }
+  setSyncDot('syncing');
+  await set(ref(db, `witze/jokes/${jokeId}`), null);
+  showToast('🗑️ Joke deleted');
+};
+
+// ── NAVIGATION ───────────────────────────────────────────
+window.showPage = (name, btn) => {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+};
+
+window.setSort = (s, btn) => {
+  sort = s;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderJokes();
+};
+</script>
+</body>
+</html>
