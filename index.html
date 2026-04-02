@@ -31,11 +31,13 @@
   @keyframes slideIn { from { opacity:0; transform:translateY(10px);} to { opacity:1; transform:translateY(0); } }
   @keyframes spin    { to   { transform:rotate(360deg); } }
   @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  @keyframes autoHideLoading { to { opacity:0; visibility:hidden; pointer-events:none; } }
 
   /* ── LOADING ── */
   #loading-overlay {
     position:fixed; inset:0; background:var(--bg); z-index:2000;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    animation:autoHideLoading 0s linear 10s forwards;
   }
   #loading-overlay.hidden { display:none; }
   .loading-logo   { font-family:'Bebas Neue',sans-serif; font-size:3rem; color:var(--yellow); letter-spacing:3px; }
@@ -197,7 +199,7 @@
 </div>
 
 <!-- AUTH -->
-<div id="auth-overlay" class="hidden">
+<div id="auth-overlay">
   <div class="auth-box">
     <div class="auth-logo">Wit<span>ze</span> 🎤</div>
     <div class="auth-sub">The ultimate group joke rater</div>
@@ -300,6 +302,18 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<script>
+// Bootstrap fallback: if module scripts fail to load/execute, don't trap users on loading screen.
+window.__bootFallbackTimer = setTimeout(() => {
+  const loading = document.getElementById('loading-overlay');
+  const auth = document.getElementById('auth-overlay');
+  const loginErr = document.getElementById('login-error');
+  if (loading) loading.classList.add('hidden');
+  if (auth) auth.classList.remove('hidden');
+  if (loginErr) loginErr.textContent = 'App failed to initialize. Refresh and try again.';
+}, 7000);
+</script>
 
 <script type="module">
 import { initializeApp }
